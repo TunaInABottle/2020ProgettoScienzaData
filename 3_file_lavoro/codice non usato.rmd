@@ -1,0 +1,58 @@
+
+
+
+
+Birthday distribution
+
+```{r}
+#Birthday distribution
+library(lubridate)
+
+villagers %>%
+  #mutate(Birthday = parse_date_time(Birthday, "d-m")) %>%
+  #mutate(Birthday = substring(Birthday, 6)) %>%
+  
+  separate(Birthday, into = c("Bday_Day", "Bday_Month")) %>%
+  count(Bday_Month, Bday_Day) %>%
+  arrange(-n) %>%
+  mutate(Month_n = as.numeric( substring( parse_date_time(Bday_Month, "m"), 6, 7) ) ) %>%
+  mutate(Bday_Month = reorder(Bday_Month, Month_n)) %>%
+  ggplot( aes(x = Bday_Month, y = n) ) +
+    geom_col()
+```
+
+Distribuzione dei materiali richiesti: quantità "verticale e orizzontale" prezzo di vendita dai materiali grezzi (vedi con other)
+
+Fascia oraria attività animali: quando trovo maggiore varietà?
+
+Analisi fossili e arte
+
+
+Quali sono le modalità più diffuse per ottenere oggetti non comprabili? FORSE!
+
+```{r}
+achievements = read_csv("Set Dati/ACNH/achievements.csv")
+
+head(achievements)
+
+art = read_csv("Set Dati/ACNH/art.csv")
+
+head(art)
+
+fossils = read_csv("Set Dati/ACNH/fossils.csv")
+
+head(fossils)
+
+
+ph = read_csv("Set Dati/ACNH/recipes.csv")
+
+head(ph)
+
+other = read_csv("Set Dati/ACNH/other.csv")
+
+head(other)
+```
+
+
+
+
