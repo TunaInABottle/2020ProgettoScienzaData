@@ -1,5 +1,5 @@
 ---
-title: "Qeuck"
+title: "Analysiing a popular tool"
 author: "Michele Marchi"
 output: 
   ioslides_presentation:
@@ -11,26 +11,39 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(cache = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(cache = TRUE, message = FALSE, warning = FALSE)
 ```
 
 # Intro 
 
 ---
 
+- This was intended to be an analysis on a survey I am working on.
+- But for privacy reasons I could not use it.
 
-#strumento usato dai protestanti di Hong kong e dalla PETA
+## So I started to delve in kaggle
+- Until I have found a datamine of a popular tool used to simulate events during the pandemic.
+- Even Hong Kong protestants and PETA use it to express their ideas.
 
+## Have you guesses it?
+- <div style = "text-align:center" ><img height = 425, src = "../2_immagini/NewHorizons.jpg"/></div>
 
-## Scopo: 
+## In case you do not know...
+- It is a Life simulation game which time is tied to the real life.
+- It is one of the best-selling games on Nintendo Switch.
+- Many do not like it because there is no true goal to achieve.
 
-> - verificare quando il gioco sia bilanciato nella distribuzione delle varie caratteristiche degli abitanti
+## Goal
 
+- Verify how the game distributes the balance regarding various characteristics of villagers.
+- Villagers are anthropomorphized animals who live in the island with you.
 
+## Loading the first dataset
 
 ```{r message=FALSE, warning=FALSE}
 library(readr)
 
+# We will use it again later
 pathMaker = function(fileName) {
   return (paste("../1_setdati/ACNH/", fileName, ".csv", sep = ""))
   }
@@ -38,16 +51,18 @@ pathMaker = function(fileName) {
 villagers = read_csv( pathMaker("villagers") )
 ```
 
----  
+
+
+## Preview
 
 ```{r}
 head(villagers)
 ```
 
 
-# Species/Sex distribution
+# Species distribution
 
-## Let's take a closer look at the available species and genders in the game
+## Available species
 
 ```{r}
 unique(villagers$Species)
@@ -57,7 +72,7 @@ unique(villagers$Species)
 - "Cow" and "Bull" are not treated as the same species.
 - Gorillas are *not* a type of monkey, they are apes, which seems to be different.
 
----
+## Available genders
 
 ```{r}
 unique(villagers$Gender)
@@ -66,11 +81,15 @@ unique(villagers$Gender)
 
 - There are just two genders, which is curious because there are a bunch of villagers that are not living being.
 
-- <div style = "text-align:center" ><img height = 300, src = "../2_immagini/Ribbot.jpg" />     <img height = 300, src = "../2_immagini/Stitches.jpg" /></div>
+- <div style = "text-align:center" >
+    <img height = 300, src = "../2_immagini/Ribbot.jpg" />
+    <img height = 300, src = "../2_immagini/Stitches.jpg" />
+  </div>
 
-## custom tibble
+## Class-Species association
 
-Let's create a custom tibble that will allow us to classify the various species of animal
+> - Let's create a custom tibble that will allow us to classify the various species of animals according to their classes.
+
 
 ```{r message=FALSE, warning=FALSE}
 library(dplyr)
@@ -98,7 +117,7 @@ animalClasses
 - Mammals have the highest amount of variety of species, followed by Birds.
 - Amphibia, Reptiles and Fishes only have one species each!
 
----
+## Adding classes to the main dataset
 
 ```{r}
 # updating villagers variable so in the future also has Class
@@ -108,7 +127,7 @@ villagers = left_join(villagers, animalClasses)
 sum(is.na(villagers$Class))
 ```
 
----
+## Species frequency
 
 ```{r}
 
@@ -122,7 +141,7 @@ speciesFreq
 
 Seems that Nintendo prefers Cats over Dogs...
 
-## relative & absolute frequency and average
+## Relative frequency and average
 
 ```{r}
 speciesFreq %>%
@@ -135,7 +154,7 @@ speciesFreq %>%
 ```
 
 - Mammals are also the most frequent species available, we then have Birds, Amphibia, Reptiles and Fishes.
-- Seems that the distribution follows the Pareto Principle.
+- Seems that the distribution follows the Pareto Principle. (The most frequent value is about 4 times the sum of the following values)
 
 # Gender and species distribution
 
@@ -145,9 +164,9 @@ speciesFreq %>%
 library(ggplot2)
 
 speciesFreq %>%
-  mutate(Species = reorder(Species, Species_count)) %>%
-  ggplot( aes(x = Species_count, y = Species, fill = Class ) ) +
-    geom_col()
+  ggplot( aes(x = Species_count, y = reorder(Species, Species_count), fill = Class ) ) +
+    geom_col() +
+    labs(x = "Count", y = "Species")
 ```
 
 ## Gender distribution in species
@@ -155,9 +174,10 @@ speciesFreq %>%
 ```{r}
 GenderFreq = villagers %>%
   count(Species, Gender) %>%
-  left_join(speciesFreq) %>%
   arrange(-n) %>%
+  
   # forcing the order to the absolute frequency of the species
+  left_join(speciesFreq) %>%
   mutate(Species = reorder(Species, Species_count))
 
 GenderFreq
@@ -169,12 +189,15 @@ GenderFreq %>%
 
 ```
 
-## Gender ratio
+- Because Cow and Bull are the same Animal, the only animal who has only one gender is Lion.
+
+## Gender ratio per species
 
 ```{r}
 GenderDistr = GenderFreq %>%
   group_by(Species, Class, Species_count) %>%
   spread(Gender, n) %>%
+  
   # ifelse is to deal with NA without using fill(0) afterwards
   summarize(
     Female = ifelse( is.na(sum(Female)), 0, sum(Female) ), 
@@ -189,20 +212,22 @@ GenderDistr
 
 ```
 
-## Gender bias in species
+## Gender bias
+
+Gender bias is when one gender is more frequent than the other.
 
 ```{r}
 GenderDistr %>%
   filter(Species_count > 10, abs(Female_rel - 0.5) > 0.2)
 ```
 
-- There is any connection with reality? (**NOTE:** my search was superficial)
+There is any connection with reality? (**NOTE:** my search was superficial)
 
 - *Frogs*: [This research](https://www.researchgate.net/publication/42608407_Sex_reversal_and_primary_sex_ratios_in_the_common_frog_Rana_temporaria) may suggest that there are more female frogs than male!
 
 - *Squirrels*: [Yellow ground squirrels](https://advances.sciencemag.org/content/1/9/e1500401) seems to have sex bias in favor of female while [Red squirrels](https://www.researchgate.net/publication/238009290_Male-biased_sex_ratios_in_a_red_squirrel_population) seems to have sex bias towards of males, this last statistic may be skewed.
 
-- *Sheeps*: [This study](https://www.tandfonline.com/doi/abs/10.1080/03033910.1996.10558087) suggest a sex bias of newborns correlated to age of the parents, but nothing as strong as expected (this is we don't consider the option to kill someone...)
+- *Sheeps*: [This study](https://www.tandfonline.com/doi/abs/10.1080/03033910.1996.10558087) suggest a sex bias of newborns correlated to age of the parents, but nothing as strong as expected.
 
 
 # Personality distribution
@@ -219,7 +244,7 @@ villagers %>%
     facet_grid(~Gender)
 ```
 
--Seems that "Lazy" is the normal state of males.
+Seems that "Lazy" is the normal state of males.
 
 # Style distribution
 
@@ -235,7 +260,7 @@ style_distribution = villagers %>%
 style_distribution
 ```
 
----
+## Most frequent styles per gender
 
 ```{r}
 style_distribution %>%
@@ -247,7 +272,7 @@ style_distribution %>%
 
 I wonder why cool and cute are two different things...
 
----
+## Style correlation
 
 ```{r}
 style_distribution %>%
@@ -259,12 +284,15 @@ style_distribution %>%
 
 - Note that there is not a perfect simmetry. Some examples:
 - Cute-Simple is more frequent than Simple-Cute.
-- Elegant-Active is mostly female while Active-Elegant is mostly male.
+- Elegant-Cool is mostly male while Cool-Elegant is mostly female.
 
 
 # Furniture study: who spend the most?
 
 ---
+
+> - Wall and Floors are stored per their name while furniture are a list of internal IDs
+> - We have to treat them differently
 
 ```{r}
 #creating new tibbles 
@@ -276,12 +304,12 @@ villager_wall_floor = villagers %>%
 villager_wall_floor
 
 villager_furnitures = villagers %>%
-  select(Name, Class, Species, Gender, Personality, Style_1, Style_2, Furniture_List) %>%
+  select(Name, Class, Species, Gender, Personality, Hobby, Furniture_List) %>%
   separate_rows(Furniture_List, sep=";") %>%
   
-  # Renaming the column because it is no longer a list
+  # Renaming the column and changing its type
   mutate(`Internal ID` = as.numeric(Furniture_List) ) %>%
-  count(Name, Class, Species, Gender, Personality, Style_1, Style_2, `Internal ID`, name = "Furniture_count") %>%
+  count(Name, Class, Species, Gender, Personality, Hobby, `Internal ID`, name = "Furniture_count") %>%
   arrange(-Furniture_count)
 
 villager_furnitures
@@ -290,7 +318,9 @@ villager_furnitures
 
 - Most of the Owned piece are identified by their internal ID, which is not really human friendly.
 
-## Preparing the joins
+## Catalogue creation
+
+> - Preparing the tibbles
 
 ```{r}
 floor = read_csv( pathMaker("floors") )
@@ -303,9 +333,8 @@ wallpaper = read_csv( pathMaker("wallpaper") )
 head(floor)
 ```
 
----
 
-There're plenty of columns we are not going to use. 
+## There are plenty of columns we are not going to use. 
 
 ```{r}
 cleaningTibble = function(input) {
@@ -339,17 +368,17 @@ catalogue %>%
 
 NFS stands for Not for Sale
 
----
-
-
+## Joining wall & floor with catalogue
 
 ```{r}
 villager_wall_floor2 = villager_wall_floor %>%
   left_join(catalogue) %>%
-    mutate(Buy = as.numeric(Buy) )# automatically changes all NFS to NA
+    mutate(Buy = as.numeric(Buy) )# Changes NFS to NA
 
 villager_wall_floor2
 ```
+
+## Joining furnitures with catalogue
 
 ```{r}
 villager_furnitures2 = villager_furnitures %>%
@@ -366,9 +395,7 @@ villager_furnitures2
 
 <div style = "text-align:center" ><img height = 500, src = "../2_immagini/EuniceInterior.jpg" /></div>
 
----
-
-So, who has spent the most?
+## Who has spent the most?
 
 ```{r}
 villager_wall_floor_expense = villager_wall_floor2 %>%
@@ -379,7 +406,7 @@ villager_wall_floor_expense = villager_wall_floor2 %>%
 
 villager_expense = villager_furnitures2 %>%
   replace_na(list(Buy = 0)) %>%
-  group_by(Name) %>%
+  group_by(Name, Species, Personality, Gender, Hobby) %>%
   summarize(furniture_sum = sum(Furniture_count * Buy) ) %>%
   ungroup() %>%
   left_join(villager_wall_floor_expense) %>%
@@ -390,9 +417,17 @@ villager_expense = villager_furnitures2 %>%
 villager_expense
 ```
 
-## Which is the distribution of classes of expense?
+> - Laundries are expensive
 
-We'll define expense classes as the trunc of total_expense / 100000
+## Did anyone not spent a bell?
+
+```{r}
+villager_expense %>%
+  filter(total_expense == 0)
+```
+
+
+## Which is the distribution of classes of expense?
 
 ```{r}
 villager_expense = villager_expense %>%
@@ -402,50 +437,55 @@ villager_expense %>%
   count(expense_class) %>%
   ggplot( aes(x = expense_class, y = n ) ) +
     geom_col(show.legend = FALSE) +
-    labs(x = "expense x100000 bells", y = "frequency")
+    labs(x = "expense per 100000 bells", y = "frequency")
 ```
 
-## How is expense distributed according species, hobby and personality?
-
-```{r}
-villager_expense2 = villagers %>%
-  select(Name, Species, Personality, Hobby) %>%
-  left_join(villager_expense) %>%
-  
-  #filtering extreme values
-  filter(expense_class<5)
-
-villager_expense2
-```
+# How is expense distributed according species, hobby and personality?
 
 ## Expense per Species
 
 ```{r}
-villager_expense2 %>%
-  
+villager_expense %>%
+  #filtering extreme values
+  filter(expense_class<5) %>%
   ggplot( aes(x = reorder(Species, total_expense), y = total_expense ) ) +
     geom_boxplot() +
+    labs(x = "Species", y = "Expense") +
     coord_flip()
 ```
 
-## Expense class per Personality
+> - Bulls spend a lot while Bears are savers, it kind reminds me the market trends.
+> - "Bull market" is when there is an upward trend, while "Bear market" is when there is a downward trend. 
+
+## Expense per Personality
 
 ```{r}
-villager_expense2 %>%
+villager_expense %>%
+  filter(expense_class<5) %>%
   ggplot( aes(x = reorder(Personality, total_expense), y = total_expense ) ) +
     geom_boxplot() +
-    coord_flip()
+    labs(x = "Personality", y = "Expense") +
+    coord_flip() +
+    # We know from before that personality only have one gender
+    facet_wrap(~Gender)
 ```
 
-Lazy is a normal who saves money, that's the true difference!
-- The extreme value may have skewed this result
+Lazy is a normal who saves money, that's the difference!
 
-## Expense class per Hobby
+## Expense per Hobby
 
 ```{r}
-villager_expense2 %>%
+villager_expense %>%
+  filter(expense_class<5) %>%
   ggplot( aes(x = reorder(Hobby, total_expense), y = total_expense ) ) +
     geom_boxplot() +
+    labs(x = "Hobby", y = "Expense") +
     coord_flip()
 ```
 
+## The end
+
+Credits:
+
+> - [NookPlaza](https://nookplaza.net/) for providing the dataset through kaggle.
+> - [Animal Crossing FANDOM Wiki](https://animalcrossing.fandom.com/wiki/Animal_Crossing_Wiki) for the images.
